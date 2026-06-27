@@ -6,11 +6,15 @@ from flask_socketio import SocketIO, emit, join_room
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "uploads"
-app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB
+app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024
 
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode="eventlet"
+)
 
 receptores = {}
 vinculos = {}
@@ -21,7 +25,8 @@ def index():
     return """
     <h1>📡 Transfer Uni</h1>
     <a href="/receptor">Abrir receptor</a><br>
-    <a href="/emisor">Abrir emisor</a>
+    <a href="/emisor">Abrir emisor</a><br>
+    <a href="/api/receptores">Ver receptores</a>
     """
 
 
@@ -47,18 +52,20 @@ def upload():
     archivo = request.files.get("archivo")
 
     if not receptor_id or receptor_id not in receptores:
-        return jsonify({"ok": False, "error": "Receptor no disponible"})
+        return jsonify({"ok": False, "error": "Receptor no disponible"}), 400
 
     if not archivo:
-        return jsonify({"ok": False, "error": "No se envió archivo"})
+        return jsonify({"ok": False, "error": "No se envió archivo"}), 400
 
-    ext = os.path.splitext(archivo.filename)[1]
+    nombre_original = archivo.filename or "archivo"
+    ext = os.path.splitext(nombre_original)[1]
     nombre_guardado = f"{uuid.uuid4().hex}{ext}"
+
     ruta = os.path.join(app.config["UPLOAD_FOLDER"], nombre_guardado)
     archivo.save(ruta)
 
     data = {
-        "nombre_original": archivo.filename,
+        "nombre_original": nombre_original,
         "url": f"/uploads/{nombre_guardado}",
         "dispositivo": dispositivo,
         "fecha": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -174,4 +181,5 @@ def desconectar():
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host="0.0.0.0", port=port)
