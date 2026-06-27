@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transfer Uni - Emisor</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+    font-family:"Segoe UI",Arial,sans-serif;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    color:white;
+    padding:18px;
+    background:
+        radial-gradient(circle at top,#2f81f7 0,#07101f 38%),
+        radial-gradient(circle at bottom,#7c3aed 0,#07101f 45%);
+}
+
+.container{
+    max-width:560px;
+    margin:auto;
+}
+
+.card{
+    background:rgba(8,18,35,.80);
+    backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:32px;
+    padding:22px;
+    box-shadow:0 30px 80px rgba(0,0,0,.5);
+}
+
+.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+}
+
+h1{
+    margin:0;
+    font-size:31px;
+    color:#58a6ff;
+}
+
+.icon-btn{
+    width:46px;
+    height:46px;
+    border:0;
+    border-radius:16px;
+    background:rgba(255,255,255,.08);
+    color:white;
+    font-size:22px;
+    cursor:pointer;
+}
+
+.sub{
+    color:#b7c8e8;
+    margin:10px 0 18px;
+}
+
+.section{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:24px;
+    padding:16px;
+    margin-top:14px;
+}
+
+.row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+}
+
+.label{
+    color:#9fb4d9;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.8px;
+}
+
+.value{
+    font-size:20px;
+    font-weight:900;
+    margin-top:5px;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    border:0;
+    border-radius:17px;
+    background:linear-gradient(135deg,#2f81f7,#7c3aed);
+    color:white;
+    font-size:16px;
+    font-weight:900;
+    margin-top:12px;
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(.98);
+}
+
+.btn-green{
+    background:linear-gradient(135deg,#238636,#2ea043);
+}
+
+.btn-red{
+    background:linear-gradient(135deg,#f85149,#da3633);
+}
+
+.btn-gray{
+    background:rgba(255,255,255,.10);
+}
+
+input{
+    width:100%;
+    padding:15px;
+    border-radius:17px;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(7,24,46,.9);
+    color:white;
+    margin-top:14px;
+}
+
+.device-list{
+    display:none;
+    margin-top:12px;
+}
+
+.device-list.show{
+    display:block;
+}
+
+.receptor{
+    background:rgba(16,41,77,.75);
+    padding:15px;
+    border-radius:19px;
+    margin-top:12px;
+    border:1px solid rgba(88,166,255,.38);
+}
+
+.receptor.activo{
+    outline:3px solid #7ee787;
+    background:rgba(35,134,54,.16);
+}
+
+.receptor strong{
+    font-size:18px;
+}
+
+.badge{
+    display:inline-block;
+    margin-top:7px;
+    padding:6px 10px;
+    border-radius:999px;
+    background:rgba(126,231,135,.12);
+    color:#7ee787;
+    font-size:12px;
+    font-weight:900;
+}
+
+.estado{
+    margin-top:16px;
+    padding:14px;
+    border-radius:18px;
+    color:#7ee787;
+    background:rgba(126,231,135,.08);
+    border:1px solid rgba(126,231,135,.25);
+    font-weight:800;
+    line-height:1.5;
+}
+
+.error{
+    color:#ff7b72;
+    background:rgba(248,81,73,.08);
+    border-color:rgba(248,81,73,.28);
+}
+
+.menu{
+    display:none;
+    background:rgba(4,12,24,.95);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:22px;
+    padding:14px;
+    margin-top:12px;
+}
+
+.menu.show{
+    display:block;
+}
+
+.selected{
+    color:#7ee787;
+}
+
+.small{
+    font-size:13px;
+    color:#9fb4d9;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="card">
+
+        <div class="top">
+            <div>
+                <h1>📱 Transfer Uni</h1>
+                <div class="sub">Envía archivos a una pantalla cercana.</div>
+            </div>
+
+            <button class="icon-btn" onclick="toggleMenu()">☰</button>
+        </div>
+
+        <div class="menu" id="menu">
+            <button class="btn-gray" onclick="cambiarNombreDispositivo()">✏️ Cambiar mi nombre</button>
+            <button class="btn-red" onclick="desvincular()">🔌 Desvincular</button>
+        </div>
+
+        <div class="section">
+            <div class="label">Tu dispositivo</div>
+            <div class="value" id="nombreDispositivoTexto"></div>
+        </div>
+
+        <div class="section">
+            <div class="row">
+                <div>
+                    <div class="label">Pantalla seleccionada</div>
+                    <div class="value selected" id="pantallaSeleccionada">Ninguna</div>
+                </div>
+            </div>
+
+            <button onclick="buscarReceptores()">🔎 Buscar pantallas</button>
+            <button class="btn-gray" onclick="toggleLista()">📺 Mostrar / ocultar dispositivos</button>
+
+            <div class="device-list" id="lista"></div>
+        </div>
+
+        <div class="section">
+            <div class="label">Archivo</div>
+            <input type="file" id="archivo" accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.mp4,.txt">
+
+            <button class="btn-green" onclick="enviarArchivo()">📤 Enviar archivo</button>
+        </div>
+
+        <div class="estado" id="estado">Esperando acción...</div>
+
+        <p class="small">Primero abre el receptor en la pantalla grande.</p>
+    </div>
+</div>
+
+<script>
+const socket = io();
+
+let receptorSeleccionado = null;
+let nombrePantallaSeleccionada = "Ninguna";
+let nombreDispositivo = localStorage.getItem("nombreDispositivo");
+
+function detectarDispositivo(){
+    const ua = navigator.userAgent;
+
+    if(ua.includes("iPhone")) return "📱 iPhone";
+    if(ua.includes("iPad")) return "📱 iPad";
+    if(ua.includes("Samsung") || ua.includes("SM-")) return "📱 Samsung";
+    if(ua.includes("Redmi")) return "📱 Redmi";
+    if(ua.includes("POCO")) return "📱 POCO";
+    if(ua.includes("Xiaomi")) return "📱 Xiaomi";
+    if(ua.includes("Huawei")) return "📱 Huawei";
+    if(ua.includes("Android")) return "📱 Android";
+    if(ua.includes("Windows")) return "💻 Laptop Windows";
+    if(ua.includes("Macintosh")) return "💻 Mac";
+
+    return "📲 Dispositivo";
+}
+
+if(!nombreDispositivo){
+    nombreDispositivo = prompt(
+        "¿Cómo quieres que aparezca tu dispositivo?",
+        detectarDispositivo()
+    ) || detectarDispositivo();
+
+    localStorage.setItem("nombreDispositivo", nombreDispositivo);
+}
+
+document.getElementById("nombreDispositivoTexto").innerText = nombreDispositivo;
+
+function baseURL(){
+    return window.location.origin;
+}
+
+function setEstado(texto, error=false){
+    const estado = document.getElementById("estado");
+    estado.innerText = texto;
+    estado.className = error ? "estado error" : "estado";
+}
+
+function toggleMenu(){
+    document.getElementById("menu").classList.toggle("show");
+}
+
+function toggleLista(){
+    document.getElementById("lista").classList.toggle("show");
+}
+
+function cambiarNombreDispositivo(){
+    const nuevo = prompt("Nuevo nombre:", nombreDispositivo);
+
+    if(nuevo && nuevo.trim() !== ""){
+        nombreDispositivo = nuevo.trim();
+        localStorage.setItem("nombreDispositivo", nombreDispositivo);
+        document.getElementById("nombreDispositivoTexto").innerText = nombreDispositivo;
+        setEstado("Nombre actualizado.");
+    }
+}
+
+async function buscarReceptores(){
+    const lista = document.getElementById("lista");
+    lista.classList.add("show");
+    lista.innerHTML = "<p>🔎 Buscando pantallas...</p>";
+    setEstado("Buscando pantallas disponibles...");
+
+    try{
+        const res = await fetch(baseURL() + "/api/receptores", {
+            method:"GET",
+            cache:"no-store"
+        });
+
+        const receptores = await res.json();
+        lista.innerHTML = "";
+
+        if(!Array.isArray(receptores) || receptores.length === 0){
+            receptorSeleccionado = null;
+            document.getElementById("pantallaSeleccionada").innerText = "Ninguna";
+            lista.innerHTML = "<p class='small'>No hay pantallas disponibles.</p>";
+            setEstado("No se encontró ninguna pantalla.", true);
+            return;
+        }
+
+        receptores.forEach(r => {
+            const div = document.createElement("div");
+            div.className = "receptor";
+
+            div.innerHTML = `
+                <strong>📺 ${r.nombre || "Pantalla disponible"}</strong>
+                <br>
+                <span class="badge">${r.estado || "Disponible"}</span>
+                <p>Lista para recibir archivos</p>
+                <button class="btn-green" type="button">Vincular</button>
+            `;
+
+            div.querySelector("button").addEventListener("click", () => {
+                receptorSeleccionado = r.id;
+                nombrePantallaSeleccionada = r.nombre || "Pantalla";
+
+                document.querySelectorAll(".receptor").forEach(x => x.classList.remove("activo"));
+                div.classList.add("activo");
+
+                document.getElementById("pantallaSeleccionada").innerText = nombrePantallaSeleccionada;
+
+                socket.emit("vincular_dispositivo", {
+                    receptor_id: receptorSeleccionado,
+                    dispositivo: nombreDispositivo
+                });
+
+                setEstado("✅ Vinculado con " + nombrePantallaSeleccionada);
+
+                setTimeout(() => {
+                    lista.classList.remove("show");
+                }, 600);
+            });
+
+            lista.appendChild(div);
+        });
+
+        setEstado("Pantallas encontradas: " + receptores.length);
+
+    }catch(error){
+        console.error(error);
+        receptorSeleccionado = null;
+        setEstado("No se pudo conectar al servidor.", true);
+    }
+}
+
+function desvincular(){
+    if(!receptorSeleccionado){
+        setEstado("No hay ninguna pantalla vinculada.", true);
+        return;
+    }
+
+    socket.emit("desvincular_dispositivo", {
+        receptor_id: receptorSeleccionado
+    });
+
+    receptorSeleccionado = null;
+    nombrePantallaSeleccionada = "Ninguna";
+
+    document.getElementById("pantallaSeleccionada").innerText = "Ninguna";
+    document.querySelectorAll(".receptor").forEach(x => x.classList.remove("activo"));
+
+    setEstado("🔌 Dispositivo desvinculado.");
+}
+
+async function enviarArchivo(){
+    const input = document.getElementById("archivo");
+    const archivo = input.files[0];
+
+    if(!receptorSeleccionado){
+        setEstado("Primero vincula una pantalla.", true);
+        return;
+    }
+
+    if(!archivo){
+        setEstado("Selecciona un archivo primero.", true);
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("receptor_id", receptorSeleccionado);
+    formData.append("dispositivo", nombreDispositivo);
+    formData.append("archivo", archivo);
+
+    setEstado("📤 Enviando archivo...");
+
+    try{
+        const res = await fetch(baseURL() + "/upload", {
+            method:"POST",
+            body:formData
+        });
+
+        const data = await res.json();
+
+        if(data.ok){
+            setEstado("✅ Archivo enviado correctamente a " + nombrePantallaSeleccionada);
+            input.value = "";
+        }else{
+            setEstado(data.error || "Error al enviar.", true);
+        }
+
+    }catch(error){
+        console.error(error);
+        setEstado("Error de conexión al enviar.", true);
+    }
+}
+
+socket.on("desvinculado_ok", () => {
+    receptorSeleccionado = null;
+    nombrePantallaSeleccionada = "Ninguna";
+    document.getElementById("pantallaSeleccionada").innerText = "Ninguna";
+    setEstado("🔌 Desvinculado correctamente.");
+});
+
+window.addEventListener("load", buscarReceptores);
+</script>
+
+</body>
+</html>

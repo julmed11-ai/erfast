@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transfer FAST - Receptor</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+    font-family:"Segoe UI",Arial,sans-serif;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    color:white;
+    background:
+        radial-gradient(circle at top left,#2f81f7 0,#07101f 35%),
+        radial-gradient(circle at bottom right,#7c3aed 0,#07101f 40%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px;
+    overflow-x:hidden;
+}
+
+body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size:42px 42px;
+    pointer-events:none;
+}
+
+.panel{
+    position:relative;
+    width:100%;
+    max-width:1100px;
+    background:rgba(8,18,35,.72);
+    backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:34px;
+    padding:34px;
+    box-shadow:0 35px 90px rgba(0,0,0,.55);
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    gap:20px;
+    align-items:center;
+    border-bottom:1px solid rgba(255,255,255,.12);
+    padding-bottom:24px;
+    flex-wrap:wrap;
+}
+
+.logo{
+    font-size:46px;
+    font-weight:900;
+    letter-spacing:-1px;
+}
+
+.logo span{
+    color:#58a6ff;
+}
+
+.sub{
+    color:#b7c8e8;
+    font-size:18px;
+}
+
+.status{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 20px;
+    background:rgba(47,129,247,.14);
+    border:1px solid rgba(88,166,255,.4);
+    border-radius:999px;
+    font-size:18px;
+    font-weight:800;
+}
+
+.dot{
+    width:13px;
+    height:13px;
+    border-radius:50%;
+    background:#7ee787;
+    box-shadow:0 0 20px #7ee787;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px;
+    margin-top:26px;
+}
+
+.card{
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:26px;
+    padding:24px;
+}
+
+.label{
+    color:#9fb4d9;
+    font-size:15px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    margin-bottom:10px;
+}
+
+.valor{
+    font-size:31px;
+    font-weight:900;
+    word-break:break-word;
+}
+
+.btn{
+    border:none;
+    padding:13px 18px;
+    border-radius:15px;
+    font-weight:900;
+    color:white;
+    cursor:pointer;
+    background:linear-gradient(135deg,#2f81f7,#7c3aed);
+    box-shadow:0 12px 28px rgba(47,129,247,.25);
+    margin-top:16px;
+}
+
+.btn-red{
+    background:linear-gradient(135deg,#f85149,#da3633);
+}
+
+.wait{
+    margin-top:28px;
+    padding:28px;
+    text-align:center;
+    border-radius:28px;
+    background:rgba(47,129,247,.08);
+    border:1px dashed rgba(88,166,255,.45);
+    font-size:22px;
+    color:#dbeafe;
+}
+
+.pulse{
+    width:92px;
+    height:92px;
+    margin:0 auto 18px;
+    border-radius:50%;
+    background:rgba(88,166,255,.14);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:44px;
+    animation:pulse 1.7s infinite;
+}
+
+@keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(88,166,255,.45)}
+    70%{box-shadow:0 0 0 28px rgba(88,166,255,0)}
+    100%{box-shadow:0 0 0 0 rgba(88,166,255,0)}
+}
+
+.archivo{
+    margin-top:26px;
+    display:none;
+    background:rgba(4,12,24,.72);
+    border:1px solid rgba(88,166,255,.4);
+    border-radius:30px;
+    padding:25px;
+}
+
+.archivo h2{
+    margin:0;
+    font-size:30px;
+}
+
+.enviado{
+    color:#b7c8e8;
+    font-size:18px;
+}
+
+.actions{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin:20px 0;
+}
+
+.actions a{
+    text-decoration:none;
+    color:white;
+    font-weight:900;
+    padding:14px 20px;
+    border-radius:16px;
+    background:linear-gradient(135deg,#238636,#2ea043);
+}
+
+.actions a:nth-child(2){
+    background:linear-gradient(135deg,#2f81f7,#1f6feb);
+}
+
+iframe{
+    width:100%;
+    height:520px;
+    border:0;
+    border-radius:22px;
+    background:white;
+}
+
+@media(max-width:850px){
+    .grid{grid-template-columns:1fr}
+    .logo{font-size:34px}
+    .valor{font-size:25px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+    <div class="header">
+        <div>
+            <div class="logo">📺 Transfer <span>Fast</span></div>
+            <div class="sub">Receptor profesional para pantalla táctil</div>
+        </div>
+
+        <div class="status">
+            <div class="dot"></div>
+            <span id="estadoTexto">Disponible</span>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="label">Nombre de pantalla</div>
+            <div class="valor" id="nombrePantallaTexto">Cargando...</div>
+            <button class="btn" onclick="cambiarNombre()">Cambiar nombre</button>
+        </div>
+
+        <div class="card">
+            <div class="label">Vinculado con</div>
+            <div class="valor" id="vinculadoTexto">Ningún dispositivo</div>
+            <button class="btn btn-red" onclick="desvincularManual()">Desvincular</button>
+        </div>
+    </div>
+
+    <div class="wait" id="espera">
+        <div class="pulse">📡</div>
+        Esperando conexión desde celular o laptop...
+    </div>
+
+    <div class="archivo" id="archivoBox">
+        <h2 id="nombreArchivo"></h2>
+        <p class="enviado" id="enviadoPor"></p>
+
+        <div class="actions">
+            <a id="abrirArchivo" target="_blank">Abrir archivo</a>
+            <a id="descargarArchivo" download>Descargar archivo</a>
+        </div>
+
+        <iframe id="visor"></iframe>
+    </div>
+</div>
+
+<script>
+const socket = io();
+let dispositivoActual = null;
+
+let nombrePantalla = localStorage.getItem("nombrePantalla");
+
+if(!nombrePantalla){
+    nombrePantalla = prompt("Ponle nombre a esta pantalla:", "Pantalla Aula 205") || "Pantalla sin nombre";
+    localStorage.setItem("nombrePantalla", nombrePantalla);
+}
+
+document.getElementById("nombrePantallaTexto").innerText = nombrePantalla;
+
+socket.on("connect", () => {
+    socket.emit("registrar_receptor", { nombre: nombrePantalla });
+});
+
+socket.on("dispositivo_vinculado", data => {
+    dispositivoActual = data.dispositivo;
+
+    document.getElementById("vinculadoTexto").innerText = data.dispositivo;
+    document.getElementById("estadoTexto").innerText = "Vinculado";
+    document.getElementById("espera").innerHTML = `
+        <div class="pulse">✅</div>
+        Vinculado con <b>${data.dispositivo}</b>. Esperando archivo...
+    `;
+});
+
+socket.on("dispositivo_desvinculado", () => {
+    limpiarVinculo();
+});
+
+socket.on("archivo_recibido", data => {
+    document.getElementById("archivoBox").style.display = "block";
+    document.getElementById("espera").style.display = "none";
+
+    document.getElementById("nombreArchivo").innerText = "📄 " + data.nombre_original;
+    document.getElementById("enviadoPor").innerText = "Enviado por: " + data.dispositivo;
+
+    document.getElementById("abrirArchivo").href = data.url;
+    document.getElementById("descargarArchivo").href = data.url;
+    document.getElementById("descargarArchivo").download = data.nombre_original;
+    document.getElementById("visor").src = data.url;
+});
+
+function limpiarVinculo(){
+    dispositivoActual = null;
+    document.getElementById("vinculadoTexto").innerText = "Ningún dispositivo";
+    document.getElementById("estadoTexto").innerText = "Disponible";
+    document.getElementById("espera").style.display = "block";
+    document.getElementById("espera").innerHTML = `
+        <div class="pulse">📡</div>
+        Esperando conexión desde celular o laptop...
+    `;
+}
+
+function desvincularManual(){
+    socket.emit("desvincular_receptor");
+    limpiarVinculo();
+}
+
+function cambiarNombre(){
+    const nuevo = prompt("Nuevo nombre de pantalla:", nombrePantalla);
+
+    if(nuevo && nuevo.trim() !== ""){
+        localStorage.setItem("nombrePantalla", nuevo.trim());
+        location.reload();
+    }
+}
+</script>
+
+</body>
+</html>
